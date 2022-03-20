@@ -1,0 +1,32 @@
+// send process
+sqlite3_reset(stmt);
+strcpy(sql, "SELECT * FROM TB_VAL WHERE DATE = '?' AND COMM = '?';");
+rc = sqlite3_prepare_v2(db, sql, sizeof(sql), &stmt, NULL);
+if(rc != SQLITE_OK)
+	return 1;
+sqlite3_bind_text(stmt, 1, data.date, sizeof(data.date), NULL);
+sqlite3_bind_text(stmt, 2, data.syscommand, sizeof(data.syscommand), NULL);
+
+char str[16];
+for(i = 0; i < 24 && sqlite3_step(stmt) == SQLITE_ROW; i++)
+{
+	buf[0] = '\0';
+	for(j = 0; j < 60 && sqlite3_step(stmt) == SQLITE_ROW; j++)
+	{
+		if(i == 0 && j == 0)
+		{
+			strcat(buf, sqlite3_column_text(stmt, 1)); // DATE
+			strcat(buf, ";");
+		}
+		strcat(buf, sqlite3_column_text(stmt, 2)); // TIME
+		strcat(buf, ";");
+		itoa(sqlite3_column_int(stmt, 4), str, sizeof(str)); // HA
+		strcat(buf, str); // HA
+		strcat(buf, ";");
+		itoa(sqlite3_column_int(stmt, 5), str, sizeof(str)); // HS
+		strcat(buf, str); // HA
+		strcat(buf, ";");
+	}
+	if(send(client.sd, buf, strlen(buf), 0) == -1)
+		perror("send 1");
+}
